@@ -139,10 +139,25 @@ function ProductGrid({ category, theme }) {
     return (
         <div className={`w-full ${theme === "dark" ? "bg-black text-white" : "bg-white text-gray-800"} font-lato min-h-screen`}>
             <section className="mb-4 sm:mb-6 md:mb-8" ref={featuredRef}>
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
-                    <Flame className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-500 mr-1 sm:mr-2" />
-                    <span className="text-sm sm:text-base md:text-lg lg:text-xxl">Sản phẩm nổi bật</span>
-                </h2>
+                <div className="relative mb-6 sm:mb-8 md:mb-10">
+                    {/* Background glow effect */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-64 h-16 bg-gradient-to-r from-red-500/20 via-orange-500/30 to-yellow-500/20 rounded-full blur-xl animate-pulse"></div>
+                    </div>
+
+                    {/* Main title */}
+                    <h2 className="relative text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 flex items-center justify-center">
+                        <div className="flex items-center text-red-500 animate-pulse">
+                            <Flame className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-red-500 mr-2 sm:mr-3 animate-bounce drop-shadow-lg" />
+                            <span className="drop-shadow-2xl text-red-600 font-bold">Sản phẩm nổi bật</span>
+                        </div>
+                    </h2>
+
+                    {/* Decorative line */}
+                    <div className="flex justify-center">
+                        <div className="w-32 sm:w-40 md:w-48 lg:w-56 h-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-full shadow-lg shadow-orange-500/50"></div>
+                    </div>
+                </div>
                 {isLoading ? (
                     <p className="text-center text-gray-400 text-xs sm:text-sm md:text-base">Đang tải...</p>
                 ) : featuredProducts.length > 0 ? (
@@ -164,10 +179,25 @@ function ProductGrid({ category, theme }) {
             </section>
 
             <section className="mb-4 sm:mb-6 md:mb-8" ref={newestRef}>
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
-                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-500 mr-1 sm:mr-2" />
-                    <span className="text-sm sm:text-base md:text-lg lg:text-xl">Sản phẩm mới nhất</span>
-                </h2>
+                <div className="relative mb-6 sm:mb-8 md:mb-10">
+                    {/* Background glow effect */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-64 h-16 bg-gradient-to-r from-blue-500/20 via-cyan-500/30 to-blue-600/20 rounded-full blur-xl animate-pulse"></div>
+                    </div>
+
+                    {/* Main title */}
+                    <h2 className="relative text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 flex items-center justify-center">
+                        <div className="flex items-center text-blue-500 animate-pulse">
+                            <Clock className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-blue-500 mr-2 sm:mr-3 animate-spin drop-shadow-lg" style={{ animationDuration: '3s' }} />
+                            <span className="drop-shadow-2xl text-blue-600 font-bold">Sản phẩm mới nhất</span>
+                        </div>
+                    </h2>
+
+                    {/* Decorative line */}
+                    <div className="flex justify-center">
+                        <div className="w-32 sm:w-40 md:w-48 lg:w-56 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 rounded-full shadow-lg shadow-blue-500/50"></div>
+                    </div>
+                </div>
                 {newestProducts.length > 0 ? (
                     <ul className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                         {newestProducts.slice(0, 5).map((product) => (
@@ -186,10 +216,25 @@ function ProductGrid({ category, theme }) {
             </section>
 
             <section className="mb-4 sm:mb-6 md:mb-8" ref={bestSellingRef}>
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 md:mb-4 flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-500 mr-1 sm:mr-2" />
-                    <span className="text-sm sm:text-base md:text-lg lg:text-xl">Sản phẩm bán chạy</span>
-                </h2>
+                <div className="relative mb-6 sm:mb-8 md:mb-10">
+                    {/* Background glow effect */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-64 h-16 bg-gradient-to-r from-green-500/20 via-emerald-500/30 to-green-600/20 rounded-full blur-xl animate-pulse"></div>
+                    </div>
+
+                    {/* Main title */}
+                    <h2 className="relative text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 flex items-center justify-center">
+                        <div className="flex items-center text-green-500 animate-pulse">
+                            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-green-500 mr-2 sm:mr-3 animate-bounce drop-shadow-lg" style={{ animationDelay: '0.5s' }} />
+                            <span className="drop-shadow-2xl text-green-600 font-bold">Sản phẩm bán chạy</span>
+                        </div>
+                    </h2>
+
+                    {/* Decorative line */}
+                    <div className="flex justify-center">
+                        <div className="w-32 sm:w-40 md:w-48 lg:w-56 h-1 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 rounded-full shadow-lg shadow-green-500/50"></div>
+                    </div>
+                </div>
                 {bestSellingProducts.length > 0 ? (
                     <ul className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                         {bestSellingProducts.slice(0, 5).map((product) => (

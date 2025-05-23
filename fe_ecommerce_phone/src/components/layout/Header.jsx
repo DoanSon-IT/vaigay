@@ -23,6 +23,18 @@ const Header = () => {
     const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
 
+    // Tạo avatar mặc định nếu user không có avatar
+    const getDefaultAvatar = (user) => {
+        if (user?.avatarUrl && user.avatarUrl !== "null") {
+            return user.avatarUrl;
+        }
+
+        // Tạo avatar mặc định từ tên hoặc email
+        const baseSeed = user?.fullName || user?.email || "default";
+        const seed = encodeURIComponent(baseSeed.trim().toLowerCase());
+        return `https://api.dicebear.com/6.x/thumbs/svg?seed=${seed}`;
+    };
+
     const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     const isAuthenticated = !!auth;
 
@@ -298,10 +310,10 @@ const Header = () => {
                                 <>
                                     <div className="w-8 h-8">
                                         <AvatarWithFrame
-                                            avatarUrl={auth?.avatarUrl || "/default-avatar.png"}
+                                            avatarUrl={getDefaultAvatar(auth)}
                                             frameUrl={`/avatar-frames/frame_${frameIndex + 1}.png`}
                                             size={32}
-                                            key={auth?.avatarUrl || "default"} // Xử lý khi auth là null
+                                            key={getDefaultAvatar(auth)}
                                         />
                                     </div>
                                     <span className="text-sm font-semibold bg-gradient-to-r from-blue-400 via-blue-500 to-blue-700 bg-clip-text text-transparent">
@@ -470,10 +482,10 @@ const Header = () => {
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className="w-12 h-12">
                                             <AvatarWithFrame
-                                                avatarUrl={auth?.avatarUrl || "/default-avatar.png"}
+                                                avatarUrl={getDefaultAvatar(auth)}
                                                 frameUrl={`/avatar-frames/frame_${frameIndex + 1}.png`}
                                                 size={48}
-                                                key={auth?.avatarUrl || "default"} // Xử lý khi auth là null
+                                                key={getDefaultAvatar(auth)}
                                             />
                                         </div>
                                         <div>

@@ -19,8 +19,8 @@ const OAuth2Success = () => {
                 console.log("OAuth2 login successful, fetching user info...");
                 const user = await getCurrentUser();
 
-                // Nếu user không có avatar, gán random Dicebear avatar
-                if (!user.avatarUrl) {
+                // Nếu user không có avatar hoặc avatar là null, gán Dicebear avatar
+                if (!user.avatarUrl || user.avatarUrl === "null") {
                     const baseSeed = user.fullName || user.email || generateRandomSeed();
                     const seed = encodeURIComponent(baseSeed.trim().toLowerCase());
                     user.avatarUrl = `https://api.dicebear.com/6.x/thumbs/svg?seed=${seed}`;

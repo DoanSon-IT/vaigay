@@ -59,14 +59,26 @@ const Login = () => {
         }
 
         const storedIntent = localStorage.getItem("redirectIntent");
+        const pendingProducts = localStorage.getItem("pendingCheckoutProducts");
         const redirectTo = storedIntent || location.state?.redirectTo || "/";
+
+        // Xóa các dữ liệu tạm thời
         localStorage.removeItem("redirectIntent");
+        localStorage.removeItem("pendingCheckoutProducts");
 
         if (user?.roles?.includes("ADMIN")) {
           navigate("/admin/dashboard", { replace: true });
         } else {
-          if (redirectTo === "/checkout" && location.state?.cartData) {
-            navigate("/checkout", { state: { selectedProducts: location.state.cartData } });
+          if (redirectTo === "/checkout") {
+            // Ưu tiên sử dụng cartData từ state, sau đó từ localStorage
+            const selectedProducts = location.state?.cartData ||
+              (pendingProducts ? JSON.parse(pendingProducts) : []);
+
+            if (selectedProducts.length > 0) {
+              navigate("/checkout", { state: { selectedProducts } });
+            } else {
+              navigate("/cart", { replace: true });
+            }
           } else {
             navigate(redirectTo, { replace: true });
           }

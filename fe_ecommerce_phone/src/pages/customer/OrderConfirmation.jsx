@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import apiOrder from "../../api/apiOrder";
@@ -12,6 +12,7 @@ const OrderConfirmation = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [retryCount, setRetryCount] = useState(0);
     const maxRetries = 3;
+    const hasInitialized = useRef(false); // Prevent double initialization
 
     const statusTranslations = {
         PENDING: "Chờ thanh toán",
@@ -31,7 +32,7 @@ const OrderConfirmation = () => {
         products: [],
     };
 
-    const fetchOrderDetails = async () => {
+    const fetchOrderDetails = async (isRetry = false) => {
         try {
             const orderId = state?.orderDetails?.orderId;
             if (!orderId || orderId === "Chưa có ID") {
@@ -39,42 +40,63 @@ const OrderConfirmation = () => {
             }
 
             const order = await apiOrder.getOrderById(orderId);
-            let payment;
-            try {
-                payment = await apiPayment.getPayment(orderId);
-            } catch (paymentError) {
-                console.error("Lỗi lấy trạng thái thanh toán:", paymentError);
-                // Bỏ toast.warn để không hiển thị lỗi cho người dùng
-                payment = { paymentMethod: state?.orderDetails?.paymentMethod || "COD", status: state?.orderDetails?.paymentStatus || "PENDING" };
+            let payment = null;
+
+            // Sử dụng payment data từ order response nếu có
+            if (order.payment) {
+                payment = order.payment;
+                if (!isRetry) { // Chỉ log lần đầu tiên
+                    console.log("✅ Lấy payment từ order response:", payment);
+                }
+            } else {
+                // Fallback: thử gọi API payment riêng biệt
+                try {
+                    payment = await apiPayment.getPayment(orderId);
+                    if (!isRetry) { // Chỉ log lần đầu tiên
+                        console.log("✅ Lấy payment từ API riêng biệt:", payment);
+                    }
+                } catch (paymentError) {
+                    if (!isRetry) { // Chỉ log lần đầu tiên
+                        console.warn("⚠️ Không thể lấy payment từ API:", paymentError.message);
+                    }
+                    // Sử dụng dữ liệu từ state nếu có
+                    payment = {
+                        paymentMethod: state?.orderDetails?.paymentMethod || "COD",
+                        status: state?.orderDetails?.paymentStatus || "PENDING"
+                    };
+                }
             }
 
             const updatedOrderDetails = {
                 orderId: order.id,
                 totalPrice: order.totalPrice || 0,
-                paymentMethod: payment.paymentMethod || "UNKNOWN",
-                paymentStatus: payment.status || "PENDING",
+                paymentMethod: payment?.paymentMethod || "UNKNOWN",
+                paymentStatus: payment?.status || "PENDING",
                 shippingFee: order.shippingFee || 0,
                 products: order.orderDetails?.map((detail) => ({
                     name: detail.productName,
                     quantity: detail.quantity,
                     price: detail.price,
                 })) || [],
+                transactionId: payment?.transactionId || null,
             };
 
             setOrderDetails(updatedOrderDetails);
 
-            if (payment.status === "PAID") {
+            // Hiển thị thông báo dựa trên trạng thái thanh toán
+            if (payment?.status === "PAID" || payment?.status === "AWAITING_DELIVERY") {
                 toast.success("Thanh toán thành công! Đơn hàng của bạn đã được xác nhận.");
-            } else if (payment.status === "FAILED" || payment.status === "CANCELLED") {
+            } else if (payment?.status === "FAILED" || payment?.status === "CANCELLED") {
                 toast.error("Thanh toán không thành công. Vui lòng thử lại.");
-            } else if (payment.status === "PROCESSING" && retryCount < maxRetries) {
+            } else if (payment?.status === "PROCESSING" && retryCount < maxRetries) {
+                console.log(`🔄 Payment đang xử lý, thử lại lần ${retryCount + 1}/${maxRetries}`);
                 setTimeout(() => {
                     setRetryCount(retryCount + 1);
-                    fetchOrderDetails();
+                    fetchOrderDetails(true); // Đánh dấu là retry
                 }, 2000);
             }
         } catch (error) {
-            console.error("Lỗi lấy chi tiết đơn hàng:", error);
+            console.error("❌ Lỗi lấy chi tiết đơn hàng:", error);
             toast.error(error.message || "Không thể tải thông tin đơn hàng! Sử dụng dữ liệu tạm thời.");
             setOrderDetails(defaultOrderDetails);
         } finally {
@@ -83,7 +105,14 @@ const OrderConfirmation = () => {
     };
 
     useEffect(() => {
-        fetchOrderDetails();
+        // Prevent double execution in React StrictMode
+        if (retryCount === 0 && hasInitialized.current) return;
+
+        if (retryCount === 0) {
+            hasInitialized.current = true;
+        }
+
+        fetchOrderDetails(retryCount > 0);
     }, [retryCount]);
 
     if (isLoading) {
@@ -131,6 +160,11 @@ const OrderConfirmation = () => {
                         <strong>Trạng thái thanh toán:</strong>{" "}
                         {statusTranslations[orderDetails.paymentStatus] || orderDetails.paymentStatus}
                     </p>
+                    {orderDetails.transactionId && (
+                        <p>
+                            <strong>Mã giao dịch:</strong> {orderDetails.transactionId}
+                        </p>
+                    )}
                     <p>
                         <strong>Phí giao hàng:</strong>{" "}
                         {orderDetails.shippingFee.toLocaleString("vi-VN")} VND

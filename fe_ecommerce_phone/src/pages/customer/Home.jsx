@@ -153,9 +153,9 @@ const Home = () => {
                     </section>
 
                     <section className="w-full mt-10 z-10">
-                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mt-4 mb-4 text-center">
+                        {/* <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mt-4 mb-4 text-center">
                             Sản phẩm đỉnh nhất
-                        </h2>
+                        </h2> */}
                         <div className="w-full max-w-screen-2xl mx-auto">
                             <ProductGrid category="featured" theme="light" />
                         </div>

@@ -27,6 +27,9 @@ public class VNPayService {
     @Value("${VNPAY_RETURN_URL}")
     private String vnpReturnUrl;
 
+    @Value("${VNPAY_IPN_URL:}")
+    private String vnpIpnUrl;
+
     @Value("${VNPAY_VERSION}")
     private String vnpVersion;
 
@@ -59,6 +62,11 @@ public class VNPayService {
             vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
             vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
 
+            // Tạm thời bỏ IPN URL vì VNPay sandbox có thể không hỗ trợ localhost
+            // if (vnpIpnUrl != null && !vnpIpnUrl.isEmpty()) {
+            // vnp_Params.put("vnp_IpnUrl", vnpIpnUrl);
+            // }
+
             // 2. Sắp xếp và tạo chuỗi query + chuỗi hash
             List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
             Collections.sort(fieldNames);
@@ -69,8 +77,10 @@ public class VNPayService {
             for (String fieldName : fieldNames) {
                 String value = vnp_Params.get(fieldName);
                 if (value != null && !value.isEmpty()) {
-                    hashData.append(fieldName).append('=').append(URLEncoder.encode(value, StandardCharsets.US_ASCII)).append('&');
-                    query.append(fieldName).append('=').append(URLEncoder.encode(value, StandardCharsets.US_ASCII)).append('&');
+                    hashData.append(fieldName).append('=').append(URLEncoder.encode(value, StandardCharsets.US_ASCII))
+                            .append('&');
+                    query.append(fieldName).append('=').append(URLEncoder.encode(value, StandardCharsets.US_ASCII))
+                            .append('&');
                 }
             }
 
@@ -87,7 +97,15 @@ public class VNPayService {
 
             // 4. Hoàn thiện URL
             query.append("&vnp_SecureHash=").append(secureHash);
-            return vnpPayUrl + "?" + query.toString();
+            String finalUrl = vnpPayUrl + "?" + query.toString();
+
+            // Log để debug
+            System.out.println("🔗 VNPay URL được tạo: " + finalUrl);
+            System.out.println("📋 VNPay Parameters:");
+            vnp_Params.forEach((key, value) -> System.out.println("  " + key + " = " + value));
+            System.out.println("🔐 Secure Hash: " + secureHash);
+
+            return finalUrl;
 
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi tạo URL thanh toán VNPay: " + e.getMessage(), e);

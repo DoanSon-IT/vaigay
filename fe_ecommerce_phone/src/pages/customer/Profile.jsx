@@ -30,18 +30,31 @@ const Profile = () => {
     const [previewAvatar, setPreviewAvatar] = useState("");
     const [customAvatar, setCustomAvatar] = useState(true);
 
+    // Tạo avatar mặc định nếu user không có avatar
+    const getDefaultAvatar = (user) => {
+        if (user?.avatarUrl && user.avatarUrl !== "null") {
+            return user.avatarUrl;
+        }
+
+        // Tạo avatar mặc định từ tên hoặc email
+        const baseSeed = user?.fullName || user?.email || "default";
+        const seed = encodeURIComponent(baseSeed.trim().toLowerCase());
+        return `https://api.dicebear.com/6.x/thumbs/svg?seed=${seed}`;
+    };
+
     useEffect(() => {
         const fetchProfile = async () => {
             try {
                 const data = await apiUser.getCurrentUser();
                 setProfile(data);
+                const defaultAvatar = getDefaultAvatar(data);
                 setFormData({
                     fullName: data.fullName || "",
                     phone: data.phone || "",
                     address: data.address || "",
-                    avatarUrl: data.avatarUrl || "",
+                    avatarUrl: defaultAvatar,
                 });
-                setPreviewAvatar(data.avatarUrl || "");
+                setPreviewAvatar(defaultAvatar);
             } catch (err) {
                 setError("Không thể tải thông tin cá nhân!");
                 toast.error("Không thể tải thông tin cá nhân!");
@@ -97,7 +110,7 @@ const Profile = () => {
         const frameImg = new Image();
         avatarImg.crossOrigin = "anonymous";
         frameImg.crossOrigin = "anonymous";
-        avatarImg.src = formData.avatarUrl || "/default-avatar.png";
+        avatarImg.src = formData.avatarUrl || getDefaultAvatar(auth);
         frameImg.src = frameOptions[selectedFrameIndex];
 
         const frameRatio = 1.4;

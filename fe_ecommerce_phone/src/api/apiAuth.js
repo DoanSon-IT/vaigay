@@ -25,9 +25,21 @@ export const verifyUser = async (token) => {
         const response = await axiosInstance.get(`/auth/verify?token=${token}`);
         return response.data;
     } catch (err) {
-        if (err.response?.data?.message?.includes("xác minh")) {
+        // Xử lý các trường hợp đặc biệt
+        const message = err.response?.data?.message || "";
+
+        if (message.includes("xác minh") || message.includes("xác thực")) {
             return err.response.data;
         }
+
+        // Nếu token không hợp lệ, có thể đã được sử dụng rồi
+        if (err.response?.status === 400 && message.includes("không hợp lệ")) {
+            return {
+                message: "Tài khoản có thể đã được xác thực trước đó.",
+                status: "already_verified"
+            };
+        }
+
         throw err;
     }
 };

@@ -102,7 +102,8 @@ public class OrderController {
                 .anyMatch(role -> role == RoleName.ADMIN || role == RoleName.STAFF);
 
         if (!isOwner && !isAdminOrStaff) {
-            return ResponseEntity.status(403).body(Collections.singletonMap("message", "Bạn không có quyền truy cập đơn hàng này."));
+            return ResponseEntity.status(403)
+                    .body(Collections.singletonMap("message", "Bạn không có quyền truy cập đơn hàng này."));
         }
 
         OrderResponse response = orderService.mapToOrderResponse(order);
@@ -117,12 +118,12 @@ public class OrderController {
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "desc") String direction,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String paymentStatus,
             @RequestParam(required = false) String customerName,
             @RequestParam(required = false) String orderId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).body(Collections.singletonMap("message", "Chưa đăng nhập!"));
         }
@@ -130,8 +131,7 @@ public class OrderController {
         User user = (User) authentication.getPrincipal();
 
         Page<OrderResponse> result = orderService.getPaginatedOrders(
-                user, page, size, sort, direction, status, customerName, orderId, startDate, endDate
-        );
+                user, page, size, sort, direction, status, paymentStatus, customerName, orderId, startDate, endDate);
 
         return ResponseEntity.ok(result);
     }
@@ -139,8 +139,8 @@ public class OrderController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ResponseEntity<OrderResponse> updateOrderStatus(@PathVariable Long id,
-                                                           @RequestBody String newStatus,
-                                                           Authentication authentication) {
+            @RequestBody String newStatus,
+            Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).body(null);
         }

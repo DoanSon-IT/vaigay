@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import apiOrder from "../../api/apiOrder";
+import apiPayment from "../../api/apiPayment";
 import "react-toastify/dist/ReactToastify.css";
 
 const VNPayReturn = () => {
@@ -10,8 +11,13 @@ const VNPayReturn = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [orderDetails, setOrderDetails] = useState(null);
+    const hasProcessed = useRef(false); // Prevent double processing
 
     useEffect(() => {
+        // Prevent double execution in React StrictMode
+        if (hasProcessed.current) return;
+        hasProcessed.current = true;
+
         const handleVNPayReturn = async () => {
             try {
                 // Get all VNPay parameters
@@ -78,6 +84,46 @@ const VNPayReturn = () => {
                 // Payment succeeded - Get order details
                 const order = await apiOrder.getOrderById(vnpTxnRef);
 
+                // ✅ CẬP NHẬT PAYMENT STATUS TRONG DATABASE
+                try {
+                    console.log("🔄 Cập nhật payment status cho đơn hàng:", vnpTxnRef);
+
+                    // Kiểm tra xem đã cập nhật chưa để tránh duplicate
+                    const existingPayment = await apiPayment.getPayment(vnpTxnRef);
+                    if (existingPayment && existingPayment.status === 'PAID') {
+                        console.log("✅ Payment đã được cập nhật trước đó, bỏ qua callback");
+                    } else {
+                        // Gọi backend callback để cập nhật payment status
+                        const callbackParams = new URLSearchParams();
+                        callbackParams.append('vnp_ResponseCode', vnpResponseCode);
+                        callbackParams.append('vnp_TxnRef', vnpTxnRef);
+                        callbackParams.append('vnp_TransactionNo', vnpTransactionNo);
+                        callbackParams.append('vnp_Amount', vnpAmount);
+                        callbackParams.append('vnp_BankCode', vnpBankCode);
+                        callbackParams.append('vnp_PayDate', vnpPayDate);
+                        callbackParams.append('vnp_OrderInfo', vnpOrderInfo);
+
+                        const callbackResponse = await fetch(`http://localhost:8080/api/payments/vnpay/callback?${callbackParams.toString()}`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        const callbackResult = await callbackResponse.json();
+                        console.log("✅ Callback response:", callbackResult);
+
+                        if (callbackResult.status === 'success') {
+                            console.log("✅ Payment status đã được cập nhật thành công!");
+                        } else {
+                            console.warn("⚠️ Callback không thành công:", callbackResult.message);
+                        }
+                    }
+                } catch (callbackError) {
+                    console.error("❌ Lỗi khi cập nhật payment status:", callbackError);
+                    // Không throw error ở đây để không làm gián đoạn flow
+                }
+
                 // Prepare order details for confirmation page
                 const details = {
                     orderId: order.id,
@@ -100,10 +146,7 @@ const VNPayReturn = () => {
                 setOrderDetails(details);
                 toast.success("Thanh toán thành công!");
 
-                // Redirect to confirmation page after a short delay
-                setTimeout(() => {
-                    navigate("/order-confirmation", { state: { orderDetails: details } });
-                }, 1500);
+                // ✅ KHÔNG TỰ ĐỘNG CHUYỂN HƯỚNG - Để người dùng tự quyết định
             } catch (error) {
                 console.error("Lỗi xử lý kết quả thanh toán:", error);
                 setError(error.message || "Lỗi xử lý kết quả thanh toán");
@@ -134,7 +177,12 @@ const VNPayReturn = () => {
         };
 
         handleVNPayReturn();
-    }, [navigate, searchParams]);
+
+        // Cleanup function để reset flag khi component unmount
+        return () => {
+            hasProcessed.current = false;
+        };
+    }, []); // Empty dependency array để chỉ chạy một lần
 
     return (
         <div className="flex items-center justify-center min-h-[60vh] bg-gray-50 dark:bg-gray-900">
@@ -194,9 +242,26 @@ const VNPayReturn = () => {
                                 Mã giao dịch: {orderDetails?.transactionId}
                             </p>
                         </div>
-                        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                            Đang chuyển đến trang xác nhận...
-                        </p>
+                        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                            <button
+                                onClick={() => navigate("/order-confirmation", { state: { orderDetails } })}
+                                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                            >
+                                Xem chi tiết đơn hàng
+                            </button>
+                            <button
+                                onClick={() => navigate("/orders")}
+                                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                            >
+                                Đơn hàng của tôi
+                            </button>
+                            <button
+                                onClick={() => navigate("/")}
+                                className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                            >
+                                Tiếp tục mua sắm
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

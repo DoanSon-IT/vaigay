@@ -48,4 +48,8 @@ public class Order {
     @JsonManagedReference
     private ShippingInfo shippingInfo;
 
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private Payment payment;
+
 }

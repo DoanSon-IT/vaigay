@@ -1,5 +1,6 @@
 package com.sondv.phone.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,6 +19,7 @@ public class Payment {
 
     @OneToOne
     @JoinColumn(name = "order_id", nullable = false, unique = true)
+    @JsonBackReference
     private Order order;
 
     @Enumerated(EnumType.STRING)

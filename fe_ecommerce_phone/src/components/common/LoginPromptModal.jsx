@@ -30,6 +30,11 @@ const LoginPromptModal = ({ onClose, cartData }) => {
     };
 
     const handleRegister = () => {
+        // Lưu cart data để restore sau khi đăng ký và đăng nhập
+        if (cartData && cartData.length > 0) {
+            localStorage.setItem("pendingCheckoutProducts", JSON.stringify(cartData));
+            localStorage.setItem("redirectIntent", "/checkout");
+        }
         navigate("/auth/register");
         onClose();
     };
@@ -110,30 +115,30 @@ const LoginPromptModal = ({ onClose, cartData }) => {
                     50% { opacity: 0.8; }
                     100% { opacity: 0.4; }
                 }
-                
+
                 .animate-smooth-pulse {
                     animation: smoothPulse 8s ease-in-out infinite;
                 }
-                
+
                 /* Glowing border effect */
                 .glow-border {
                     box-shadow: 0 0 15px 2px rgba(255, 255, 255, 0.1);
                     animation: borderPulse 4s infinite;
                     pointer-events: none;
                 }
-                
+
                 @keyframes borderPulse {
                     0% { box-shadow: 0 0 15px 2px rgba(255, 255, 255, 0.1); }
                     50% { box-shadow: 0 0 25px 4px rgba(255, 255, 255, 0.2); }
                     100% { box-shadow: 0 0 15px 2px rgba(255, 255, 255, 0.1); }
                 }
-                
+
                 /* Stars background */
                 .stars-container {
                     position: absolute;
                     width: 100%;
                     height: 100%;
-                    background-image: 
+                    background-image:
                         radial-gradient(2px 2px at 20px 30px, white, rgba(0,0,0,0)),
                         radial-gradient(2px 2px at 40px 70px, white, rgba(0,0,0,0)),
                         radial-gradient(2px 2px at 50px 160px, white, rgba(0,0,0,0)),
@@ -144,13 +149,13 @@ const LoginPromptModal = ({ onClose, cartData }) => {
                     background-size: 200px 200px;
                     animation: twinkle 8s ease-in-out infinite;
                 }
-                
+
                 @keyframes twinkle {
                     0% { opacity: 0.3; }
                     50% { opacity: 0.7; }
                     100% { opacity: 0.3; }
                 }
-                
+
                 /* Đã chỉnh sửa: Sao băng từ góc PHẢI trên xuống góc TRÁI dưới (dạng \) */
                 @keyframes shootingStar {
                     0% {
@@ -165,7 +170,7 @@ const LoginPromptModal = ({ onClose, cartData }) => {
                         opacity: 0;
                     }
                 }
-                
+
                 .shooting-star {
                     position: absolute;
                     width: 4px;
@@ -174,21 +179,21 @@ const LoginPromptModal = ({ onClose, cartData }) => {
                     border-radius: 50%;
                     filter: blur(1px);
                 }
-                
+
                 .star-1 {
                     top: 5%;
                     right: 10%; /* Đổi từ left thành right */
                     animation: shootingStar 2.5s ease-in-out infinite;
                     animation-delay: 0s;
                 }
-                
+
                 .star-2 {
                     top: 15%;
                     right: 25%; /* Đổi từ left thành right */
                     animation: shootingStar 3s ease-in-out infinite;
                     animation-delay: 1s;
                 }
-                
+
                 .star-3 {
                     top: 8%;
                     right: 40%; /* Đổi từ left thành right */

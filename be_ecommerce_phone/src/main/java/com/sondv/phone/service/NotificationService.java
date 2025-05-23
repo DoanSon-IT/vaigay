@@ -26,4 +26,33 @@ public class NotificationService {
         mail.setText(message);
         mailSender.send(mail);
     }
+
+    // ✅ Gửi thông báo khi thanh toán thành công
+    public void sendPaymentSuccessNotification(Long orderId, String transactionId, double amount) {
+        String message = String.format(
+                "🎉 THANH TOÁN THÀNH CÔNG!\n" +
+                        "📦 Đơn hàng: #%d\n" +
+                        "💰 Số tiền: %,.0f VND\n" +
+                        "🏦 Mã giao dịch: %s\n" +
+                        "⏰ Thời gian: %s",
+                orderId,
+                amount,
+                transactionId,
+                java.time.LocalDateTime.now()
+                        .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
+
+        logger.info(message); // ✅ Ghi log thông báo
+
+        try {
+            // ✅ Gửi email cho Admin
+            SimpleMailMessage mail = new SimpleMailMessage();
+            mail.setTo("admin@example.com");
+            mail.setSubject("🎉 Thông Báo Thanh Toán Thành Công - Đơn Hàng #" + orderId);
+            mail.setText(message);
+            mailSender.send(mail);
+            logger.info("✅ Đã gửi email thông báo thanh toán thành công cho admin");
+        } catch (Exception e) {
+            logger.warning("⚠️ Không thể gửi email thông báo: " + e.getMessage());
+        }
+    }
 }

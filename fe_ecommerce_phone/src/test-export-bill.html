@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Export Bill</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
+</head>
+
+<body>
+    <h1>Test Xuất Hóa Đơn PDF</h1>
+    <button onclick="testExportBill()">Xuất Hóa Đơn Test</button>
+
+    <script>
+        // Dữ liệu đơn hàng test
+        const testOrderData = {
+            id: 12345,
+            status: "CONFIRMED",
+            createdAt: "2024-01-15T10:30:00Z",
+            totalPrice: 25430000,
+            shippingFee: 30000,
+            paymentMethod: "VNPAY",
+            paymentStatus: "PAID",
+            note: "Giao hàng trong giờ hành chính",
+
+            customer: {
+                fullName: "Nguyễn Văn A",
+                email: "nguyenvana@email.com"
+            },
+
+            shippingInfo: {
+                address: "123 Đường Nguyễn Văn Cừ, Phường 4, Quận 5, TP.HCM",
+                phoneNumber: "0123456789",
+                carrier: "Giao hàng nhanh",
+                trackingNumber: "GHN123456789",
+                estimatedDelivery: "2024-01-17T15:00:00Z",
+                shippingFee: 30000
+            },
+
+            orderDetails: [
+                {
+                    id: 1,
+                    productId: 101,
+                    productName: "iPhone 15 Pro Max 256GB - Titan Tự Nhiên",
+                    productImage: "/images/iphone15pro.jpg",
+                    quantity: 1,
+                    price: 25000000
+                },
+                {
+                    id: 2,
+                    productId: 102,
+                    productName: "Ốp lưng iPhone 15 Pro Max Silicone",
+                    productImage: "/images/case-iphone.jpg",
+                    quantity: 2,
+                    price: 200000
+                }
+            ]
+        };
+
+        // Thông tin cửa hàng
+        const STORE_INFO = {
+            name: "Cửa hàng điện thoại SonDV",
+            address: "123 Đường Nguyễn Văn Cừ, Quận 5, TP.HCM",
+            phone: "0123-456-789",
+            email: "contact@sondvphone.com",
+            website: "www.sondvphone.com"
+        };
+
+        // Hàm format tiền tệ
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('vi-VN').format(amount) + ' VND';
+        };
+
+        // Hàm format ngày tháng
+        const formatDate = (dateString) => {
+            return new Date(dateString).toLocaleDateString('vi-VN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        };
+
+        // Hàm chuyển đổi trạng thái đơn hàng
+        const getStatusText = (status) => {
+            switch (status) {
+                case "PENDING": return "Đang xử lý";
+                case "CONFIRMED": return "Đã xác nhận";
+                case "SHIPPED": return "Đang giao";
+                case "COMPLETED": return "Đã giao";
+                case "CANCELLED": return "Đã hủy";
+                default: return status;
+            }
+        };
+
+        // Hàm chuyển đổi phương thức thanh toán
+        const formatPaymentMethod = (method) => {
+            switch (method) {
+                case "COD": return "Thanh toán khi nhận hàng";
+                case "VNPAY": return "Thanh toán qua VNPAY";
+                case "MOMO": return "Thanh toán qua MOMO";
+                default: return "Chưa có thông tin";
+            }
+        };
+
+        async function testExportBill() {
+            try {
+                console.log('Bắt đầu tạo PDF...');
+
+                // Tạo PDF mới với kích thước A4
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+
+                let yPosition = 20;
+                const leftMargin = 15;
+                const rightMargin = pageWidth - 15;
+
+                // === HEADER - THÔNG TIN CỬA HÀNG ===
+                const centerX = pageWidth / 2;
+                pdf.setFontSize(20);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('HOA DON GIAO HANG', centerX, yPosition, { align: 'center' });
+
+                yPosition += 8;
+                pdf.setFontSize(16);
+                pdf.text('Cua hang dien thoai SonDV', centerX, yPosition, { align: 'center' });
+
+                yPosition += 6;
+                pdf.setFontSize(10);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text('123 Duong Nguyen Van Cu, Quan 5, TP.HCM', centerX, yPosition, { align: 'center' });
+
+                yPosition += 4;
+                pdf.text('SDT: 0123-456-789 | Email: contact@sondvphone.com', centerX, yPosition, { align: 'center' });
+
+                // Đường kẻ phân cách
+                yPosition += 10;
+                pdf.setLineWidth(0.5);
+                pdf.line(leftMargin, yPosition, rightMargin, yPosition);
+                yPosition += 10;
+
+                // === THÔNG TIN ĐƠN HÀNG ===
+                pdf.setFontSize(12);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('THÔNG TIN ĐƠN HÀNG', leftMargin, yPosition);
+                yPosition += 8;
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(10);
+
+                // Thông tin đơn hàng - 2 cột
+                const col1X = leftMargin;
+                const col2X = pageWidth / 2 + 10;
+
+                pdf.text(`Mã đơn hàng: #${testOrderData.id}`, col1X, yPosition);
+                pdf.text(`Ngày đặt: ${formatDate(testOrderData.createdAt)}`, col2X, yPosition);
+                yPosition += 6;
+
+                pdf.text(`Trạng thái: ${getStatusText(testOrderData.status)}`, col1X, yPosition);
+                pdf.text(`Thanh toán: ${formatPaymentMethod(testOrderData.paymentMethod)}`, col2X, yPosition);
+                yPosition += 10;
+
+                // === THÔNG TIN KHÁCH HÀNG ===
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('THÔNG TIN KHÁCH HÀNG', leftMargin, yPosition);
+                yPosition += 8;
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Họ tên: ${testOrderData.customer?.fullName || 'N/A'}`, leftMargin, yPosition);
+                yPosition += 5;
+                pdf.text(`Email: ${testOrderData.customer?.email || 'N/A'}`, leftMargin, yPosition);
+                yPosition += 5;
+                pdf.text(`SĐT: ${testOrderData.shippingInfo?.phoneNumber || 'N/A'}`, leftMargin, yPosition);
+                yPosition += 5;
+                pdf.text(`Địa chỉ: ${testOrderData.shippingInfo?.address || 'N/A'}`, leftMargin, yPosition);
+                yPosition += 10;
+
+                // === DANH SÁCH SẢN PHẨM ===
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('DANH SÁCH SẢN PHẨM', leftMargin, yPosition);
+                yPosition += 8;
+
+                // Header bảng sản phẩm
+                pdf.setFillColor(240, 240, 240);
+                pdf.rect(leftMargin, yPosition - 2, rightMargin - leftMargin, 8, 'F');
+
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(9);
+                pdf.text('Sản phẩm', leftMargin + 2, yPosition + 3);
+                pdf.text('SL', leftMargin + 82, yPosition + 3);
+                pdf.text('Đơn giá', leftMargin + 102, yPosition + 3);
+                pdf.text('Thành tiền', leftMargin + 137, yPosition + 3);
+
+                yPosition += 8;
+
+                // Vẽ đường kẻ bảng
+                pdf.line(leftMargin, yPosition, rightMargin, yPosition);
+
+                // Dữ liệu sản phẩm
+                pdf.setFont('helvetica', 'normal');
+                let subtotal = 0;
+
+                testOrderData.orderDetails.forEach((item) => {
+                    const itemTotal = item.quantity * item.price;
+                    subtotal += itemTotal;
+
+                    pdf.text(item.productName, leftMargin + 2, yPosition + 4);
+                    pdf.text(item.quantity.toString(), leftMargin + 82, yPosition + 4);
+                    pdf.text(formatCurrency(item.price), leftMargin + 102, yPosition + 4);
+                    pdf.text(formatCurrency(itemTotal), leftMargin + 137, yPosition + 4);
+
+                    yPosition += 6;
+                    pdf.line(leftMargin, yPosition, rightMargin, yPosition);
+                });
+
+                yPosition += 5;
+
+                // === TỔNG TIỀN ===
+                const summaryX = pageWidth - 80;
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Tạm tính:`, summaryX, yPosition);
+                pdf.text(formatCurrency(subtotal), summaryX + 40, yPosition, { align: 'right' });
+                yPosition += 5;
+
+                const shippingFee = testOrderData.shippingFee || 0;
+                pdf.text(`Phí vận chuyển:`, summaryX, yPosition);
+                pdf.text(formatCurrency(shippingFee), summaryX + 40, yPosition, { align: 'right' });
+                yPosition += 5;
+
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(`TỔNG CỘNG:`, summaryX, yPosition);
+                pdf.text(formatCurrency(testOrderData.totalPrice), summaryX + 40, yPosition, { align: 'right' });
+                yPosition += 10;
+
+                // === THÔNG TIN VẬN CHUYỂN ===
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('THÔNG TIN VẬN CHUYỂN', leftMargin, yPosition);
+                yPosition += 8;
+
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Đơn vị vận chuyển: ${testOrderData.shippingInfo.carrier}`, leftMargin, yPosition);
+                yPosition += 5;
+                pdf.text(`Mã vận đơn: ${testOrderData.shippingInfo.trackingNumber}`, leftMargin, yPosition);
+                yPosition += 5;
+                pdf.text(`Dự kiến giao: ${formatDate(testOrderData.shippingInfo.estimatedDelivery)}`, leftMargin, yPosition);
+                yPosition += 15;
+
+                // === FOOTER ===
+                pdf.setFontSize(10);
+                pdf.setFont('helvetica', 'italic');
+                pdf.text('Cảm ơn quý khách đã mua hàng!', pageWidth / 2, yPosition, { align: 'center' });
+
+                // Lưu PDF
+                const fileName = `hoa-don-test-${testOrderData.id}.pdf`;
+                pdf.save(fileName);
+
+                console.log('Tạo PDF thành công!');
+                alert('Đã tạo PDF thành công: ' + fileName);
+
+            } catch (error) {
+                console.error('Lỗi tạo PDF:', error);
+                alert('Lỗi tạo PDF: ' + error.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

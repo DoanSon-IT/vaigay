@@ -48,7 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/categories/**",
             "/api/reviews/product/**",
             "/api/discounts/spin",
-            "/api/discounts/active"
+            "/api/discounts/active",
+            "/api/payments/vnpay/callback",
+            "/api/payments/momo/callback"
     };
 
     @Override
@@ -90,8 +92,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             return new JwtException("User không tồn tại!");
                         });
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null,
+                        user.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 logger.info("✅ Đã xác thực user: {}", email);
             }

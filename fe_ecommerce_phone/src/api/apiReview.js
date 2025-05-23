@@ -14,8 +14,10 @@ export const getPagedReviews = async (
     direction = "desc"
 ) => {
     try {
+        const params = { page, size, sortBy, direction };
+
         const response = await axios.get(`/reviews/product/${productId}`, {
-            params: { page, size, sortBy, direction },
+            params,
         });
         return response.data;
     } catch (error) {

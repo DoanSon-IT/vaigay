@@ -19,7 +19,7 @@ public class CaffeineConfig {
     @Bean
     public Caffeine<Object, Object> caffeineCache() {
         return Caffeine.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
+                .expireAfterWrite(2, TimeUnit.MINUTES) // Giảm thời gian cache để dữ liệu được cập nhật nhanh hơn
                 .maximumSize(5000);
     }
 

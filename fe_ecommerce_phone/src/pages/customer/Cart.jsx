@@ -49,7 +49,9 @@ function Cart() {
         const selectedProducts = cartItems.filter((item) => selectedItems.has(item.id));
 
         if (!auth) {
-            localStorage.setItem("redirectIntent", "/cart");
+            // Lưu cả redirect intent và selected products để restore sau khi đăng nhập
+            localStorage.setItem("redirectIntent", "/checkout");
+            localStorage.setItem("pendingCheckoutProducts", JSON.stringify(selectedProducts));
             setShowLoginPrompt(true);
             return;
         }

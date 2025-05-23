@@ -61,7 +61,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
@@ -83,16 +84,15 @@ public class SecurityConfig {
                             CookieUtil.clearCookie(res, "auth_token");
                             CookieUtil.clearCookie(res, "refresh_token");
                             res.setStatus(200);
-                        })
-                )
+                        }))
                 .authorizeHttpRequests(auth -> auth
 
                         // 🔓 Swagger, OAuth2, Auth – hoàn toàn công khai
                         .requestMatchers(
                                 "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**",
                                 "/login/oauth2/**", "/oauth2/**",
-                                "/api/auth/**", "/email_verified_success.html", "/email_verified_fail.html"
-                        ).permitAll()
+                                "/api/auth/**", "/email_verified_success.html", "/email_verified_fail.html")
+                        .permitAll()
 
                         // 🔓 PUBLIC APIs: khách hàng có thể xem
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
@@ -118,7 +118,8 @@ public class SecurityConfig {
                         // 🔐 STAFF + ADMIN APIs
                         .requestMatchers("/api/orders/**").hasAnyRole("CUSTOMER", "ADMIN", "STAFF")
 
-                        // 🔐 CUSTOMER-only APIs
+                        // 🔐 CUSTOMER-only APIs (trừ callback)
+                        .requestMatchers("/api/payments/vnpay/callback", "/api/payments/momo/callback").permitAll()
                         .requestMatchers("/api/payments/**").hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.POST, "/api/reviews").authenticated()
 
@@ -127,8 +128,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/chatbot/ask").permitAll()
 
                         // ❗ Tất cả còn lại phải đăng nhập
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
 
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/login")
@@ -141,17 +141,18 @@ public class SecurityConfig {
                                         return facebookOAuth2UserService.loadUser(userRequest);
                                     }
                                     throw new OAuth2AuthenticationException("Unsupported OAuth2 provider: " + provider);
-                                })
-                        )
+                                }))
                         .successHandler((request, response, authentication) -> {
-                            String provider = authentication.getAuthorities().toString().contains("google") ? "google" : "facebook";
+                            String provider = authentication.getAuthorities().toString().contains("google") ? "google"
+                                    : "facebook";
                             if (provider.equals("google")) {
-                                googleOAuth2LoginSuccessHandler.onAuthenticationSuccess(request, response, authentication);
+                                googleOAuth2LoginSuccessHandler.onAuthenticationSuccess(request, response,
+                                        authentication);
                             } else {
-                                facebookOAuth2LoginSuccessHandler.onAuthenticationSuccess(request, response, authentication);
+                                facebookOAuth2LoginSuccessHandler.onAuthenticationSuccess(request, response,
+                                        authentication);
                             }
-                        })
-                )
+                        }))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex

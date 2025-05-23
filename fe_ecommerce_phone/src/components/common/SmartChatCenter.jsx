@@ -65,7 +65,7 @@ const SmartChatCenter = ({ userId }) => {
             if (filteredHistory.length === 0) {
                 const welcome = {
                     sender: "bot",
-                    content: "🌟 Em là trợ lý AI tại DsonStore. Anh/chị đang tìm dòng điện thoại nào ạ?"
+                    content: "🌟 Em là trợ lý AI tại DsonMobile. Anh/chị đang tìm dòng điện thoại nào ạ?"
                 };
                 setMessages([welcome]);
                 localStorage.setItem(aiHistoryKey, JSON.stringify([welcome]));
@@ -283,7 +283,7 @@ const SmartChatCenter = ({ userId }) => {
                 <div className="fixed bottom-5 right-5 w-[calc(100%-2rem)] sm:w-[400px] md:w-[500px] lg:w-[600px] max-h-[90vh] bg-white rounded-2xl border border-gray-200 shadow-2xl flex flex-col z-[101] animate-slide-up overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                         <div className="font-semibold flex items-center gap-2">
-                            <span>💬 Chat với DsonStore</span>
+                            <span>💬 Chat với DsonMobile</span>
                         </div>
                         <div className="flex gap-2">
                             <button

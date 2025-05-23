@@ -58,6 +58,14 @@ public class AuthService {
         user.setVerified(false);
         user.setProvider(AuthProvider.LOCAL);
 
+        // Tạo avatar mặc định sử dụng Dicebear API
+        String baseSeed = request.getFullName() != null && !request.getFullName().trim().isEmpty()
+                ? request.getFullName()
+                : request.getEmail();
+        String seed = java.net.URLEncoder.encode(baseSeed.trim().toLowerCase(),
+                java.nio.charset.StandardCharsets.UTF_8);
+        user.setAvatarUrl("https://api.dicebear.com/6.x/thumbs/svg?seed=" + seed);
+
         String verificationToken = UUID.randomUUID().toString();
         user.setVerificationToken(verificationToken);
         user.setVerificationTokenCreatedAt(LocalDateTime.now());
@@ -84,9 +92,7 @@ public class AuthService {
         try {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getEmail(), request.getPassword()
-                    )
-            );
+                            request.getEmail(), request.getPassword()));
         } catch (Exception e) {
             throw new ApiException(401, "Email hoặc mật khẩu không đúng!");
         }
@@ -147,8 +153,7 @@ public class AuthService {
 
         Map<String, String> placeholders = Map.of(
                 "fullName", user.getFullName(),
-                "resetLink", resetLink
-        );
+                "resetLink", resetLink);
 
         String html = emailService.loadEmailTemplate("reset_password_email.html", placeholders);
         emailService.sendEmail(user.getEmail(), "🔐 Khôi phục mật khẩu - Doan Son Store", html);
@@ -170,12 +175,10 @@ public class AuthService {
         userRepository.save(user);
 
         Map<String, String> placeholders = Map.of(
-                "fullName", user.getFullName()
-        );
+                "fullName", user.getFullName());
 
         String html = emailService.loadEmailTemplate("reset_success_notify.html", placeholders);
         emailService.sendEmail(user.getEmail(), "🔐 Mật khẩu đã được thay đổi - Doan Son Store", html);
-
 
         return "✅ Mật khẩu của bạn đã được đặt lại thành công!";
     }
@@ -196,8 +199,7 @@ public class AuthService {
 
         Map<String, String> placeholders = Map.of(
                 "fullName", user.getFullName(),
-                "verifyLink", verifyLink
-        );
+                "verifyLink", verifyLink);
 
         String html = emailService.loadEmailTemplate("verification_email.html", placeholders);
         emailService.sendEmail(user.getEmail(), subject, html);

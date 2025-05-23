@@ -7,6 +7,7 @@ import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +16,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -84,7 +88,8 @@ public class OrderService {
                 OffsetDateTime end = product.getDiscountEndDate().atOffset(ZoneOffset.UTC);
                 boolean isDiscountActive = !now.isBefore(start) && !now.isAfter(end);
                 if (isDiscountActive && orderRequest.getDiscountCode() != null) {
-                    throw new IllegalArgumentException("Sản phẩm '" + product.getName() + "' đang khuyến mãi, không thể áp mã.");
+                    throw new IllegalArgumentException(
+                            "Sản phẩm '" + product.getName() + "' đang khuyến mãi, không thể áp mã.");
                 }
             }
 
@@ -130,13 +135,15 @@ public class OrderService {
 
             // Phân bổ discountAmount vào OrderDetail.price
             if (discountAmount.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal totalQuantity = BigDecimal.valueOf(orderDetails.stream().mapToLong(OrderDetail::getQuantity).sum());
+                BigDecimal totalQuantity = BigDecimal
+                        .valueOf(orderDetails.stream().mapToLong(OrderDetail::getQuantity).sum());
                 for (OrderDetail detail : orderDetails) {
                     BigDecimal itemDiscount = discountAmount
                             .multiply(BigDecimal.valueOf(detail.getQuantity()))
                             .divide(totalQuantity, RoundingMode.HALF_UP);
                     BigDecimal discountedPrice = detail.getPrice()
-                            .subtract(itemDiscount.divide(BigDecimal.valueOf(detail.getQuantity()), RoundingMode.HALF_UP));
+                            .subtract(itemDiscount.divide(BigDecimal.valueOf(detail.getQuantity()),
+                                    RoundingMode.HALF_UP));
                     detail.setPrice(discountedPrice.max(BigDecimal.ZERO)); // Đảm bảo giá không âm
                 }
             }
@@ -154,8 +161,7 @@ public class OrderService {
 
         ShippingEstimateDTO estimate = shippingService.estimateShipping(
                 orderRequest.getAddress(),
-                orderRequest.getCarrier()
-        );
+                orderRequest.getCarrier());
         shippingInfo.setShippingFee(estimate.getFee());
         shippingInfo.setEstimatedDelivery(estimate.getEstimatedDelivery());
         order.setShippingInfo(shippingInfo);
@@ -175,7 +181,8 @@ public class OrderService {
                     ? PaymentMethod.valueOf(orderRequest.getPaymentMethod().toUpperCase())
                     : PaymentMethod.COD;
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ: " + orderRequest.getPaymentMethod());
+            throw new IllegalArgumentException(
+                    "Phương thức thanh toán không hợp lệ: " + orderRequest.getPaymentMethod());
         }
 
         order = orderRepository.save(order);
@@ -202,6 +209,7 @@ public class OrderService {
     }
 
     @Transactional
+    @CacheEvict(value = "userOrders", allEntries = true)
     public Order cancelOrder(Long orderId, User user) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng!"));
@@ -227,14 +235,14 @@ public class OrderService {
                     detail.getProduct().getId(),
                     detail.getQuantity(),
                     "Hủy đơn hàng",
-                    user.getId()
-            );
+                    user.getId());
         }
 
         return order;
     }
 
     @Transactional
+    @CacheEvict(value = "userOrders", allEntries = true)
     public Order updateOrderStatus(Long orderId, OrderStatus status, User user) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng!"));
@@ -245,8 +253,7 @@ public class OrderService {
                         detail.getProduct().getId(),
                         -detail.getQuantity(),
                         "Hoàn thành đơn hàng",
-                        user.getId()
-                );
+                        user.getId());
             }
             Customer customer = order.getCustomer();
             int currentPoints = customer.getLoyaltyPoints() != null ? customer.getLoyaltyPoints() : 0;
@@ -268,6 +275,7 @@ public class OrderService {
     }
 
     @Transactional
+    @CacheEvict(value = "userOrders", allEntries = true)
     public Order confirmOrder(Long orderId, User user) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng!"));
@@ -278,17 +286,18 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    @Cacheable(value = "userOrders", key = "#user.id + '-' + #page + '-' + #size + '-' + #sortField + '-' + #sortDirection + '-' + #status + '-' + #customerName + '-' + #orderId")
+    @Cacheable(value = "userOrders", key = "#user.id + '-' + #page + '-' + #size + '-' + #sortField + '-' + #sortDirection + '-' + #status + '-' + #paymentStatus + '-' + #customerName + '-' + #orderId")
     public Page<OrderResponse> getPaginatedOrders(User user,
-                                                  int page,
-                                                  int size,
-                                                  String sortField,
-                                                  String sortDirection,
-                                                  String status,
-                                                  String customerName,
-                                                  String orderId,
-                                                  LocalDate startDate,
-                                                  LocalDate endDate) {
+            int page,
+            int size,
+            String sortField,
+            String sortDirection,
+            String status,
+            String paymentStatus,
+            String customerName,
+            String orderId,
+            LocalDate startDate,
+            LocalDate endDate) {
 
         Sort.Direction direction = Sort.Direction.fromString(sortDirection.toUpperCase());
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortField));
@@ -305,6 +314,12 @@ public class OrderService {
 
             if (status != null && !status.isBlank()) {
                 predicate = cb.and(predicate, cb.equal(root.get("status"), OrderStatus.valueOf(status)));
+            }
+
+            if (paymentStatus != null && !paymentStatus.isBlank()) {
+                Join<Order, Payment> paymentJoin = root.join("payment", JoinType.LEFT);
+                predicate = cb.and(predicate,
+                        cb.equal(paymentJoin.get("status"), PaymentStatus.valueOf(paymentStatus)));
             }
 
             if (customerName != null && !customerName.isBlank()) {
@@ -348,9 +363,20 @@ public class OrderService {
         if (payment != null) {
             dto.setPaymentMethod(payment.getPaymentMethod().name());
             dto.setPaymentStatus(payment.getStatus().name());
+
+            // Tạo PaymentDTO object
+            PaymentDTO paymentDTO = PaymentDTO.builder()
+                    .id(payment.getId())
+                    .paymentMethod(payment.getPaymentMethod().name())
+                    .status(payment.getStatus().name())
+                    .transactionId(payment.getTransactionId())
+                    .createdAt(payment.getCreatedAt())
+                    .build();
+            dto.setPayment(paymentDTO);
         } else {
             dto.setPaymentMethod("UNKNOWN");
             dto.setPaymentStatus("PENDING");
+            dto.setPayment(null);
         }
 
         if (order.getCustomer() != null && order.getCustomer().getUser() != null) {

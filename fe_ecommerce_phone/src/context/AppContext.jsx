@@ -25,6 +25,18 @@ export const AppProvider = ({ children }) => {
         return stored ? JSON.parse(stored) : [];
     });
 
+    // Tạo avatar mặc định nếu user không có avatar
+    const getDefaultAvatar = (user) => {
+        if (user?.avatarUrl && user.avatarUrl !== "null") {
+            return user.avatarUrl;
+        }
+
+        // Tạo avatar mặc định từ tên hoặc email
+        const baseSeed = user?.fullName || user?.email || "default";
+        const seed = encodeURIComponent(baseSeed.trim().toLowerCase());
+        return `https://api.dicebear.com/6.x/thumbs/svg?seed=${seed}`;
+    };
+
     const navigate = useNavigate();
     const location = useLocation();
     const isVerifyingRef = useRef(false);
@@ -145,6 +157,10 @@ export const AppProvider = ({ children }) => {
             }
 
             const user = await getCurrentUser();
+            // Đảm bảo user có avatar mặc định
+            if (!user.avatarUrl || user.avatarUrl === "null") {
+                user.avatarUrl = getDefaultAvatar(user);
+            }
             setAuth(user);
             sessionStorage.setItem("auth", JSON.stringify(user));
             userCacheRef.current = { data: user, timestamp: now };
@@ -192,6 +208,10 @@ export const AppProvider = ({ children }) => {
             const res = await loginUser(credentials);
             if (res.message === "Đăng nhập thành công") {
                 const user = await getCurrentUser();
+                // Đảm bảo user có avatar mặc định
+                if (!user.avatarUrl || user.avatarUrl === "null") {
+                    user.avatarUrl = getDefaultAvatar(user);
+                }
                 setAuth(user);
                 sessionStorage.setItem("auth", JSON.stringify(user));
                 userCacheRef.current = { data: user, timestamp: Date.now() };
@@ -210,7 +230,7 @@ export const AppProvider = ({ children }) => {
         }
     }, [setupRefreshTimer]);
 
-    const logout = useCallback(async () => {
+    const logout = useCallback(async (clearCart = false) => {
         setLoading(true);
         try {
             await logoutUser();
@@ -221,8 +241,20 @@ export const AppProvider = ({ children }) => {
             refreshTimerRef.current = null;
             setAuth(null);
             sessionStorage.removeItem("auth");
-            setCartItems([]);
+
+            // Chỉ xóa cart khi được yêu cầu rõ ràng
+            if (clearCart) {
+                setCartItems([]);
+                sessionStorage.removeItem("cartItems");
+            }
+
+            // Xóa các dữ liệu auth khác nhưng giữ lại cart
+            const cartData = sessionStorage.getItem("cartItems");
             sessionStorage.clear();
+            if (cartData && !clearCart) {
+                sessionStorage.setItem("cartItems", cartData);
+            }
+
             userCacheRef.current = { data: null, timestamp: 0 };
             navigate("/", { replace: true });
             setLoading(false);
@@ -250,6 +282,11 @@ export const AppProvider = ({ children }) => {
             );
     }, [removeFromCart]);
 
+    const clearCart = useCallback(() => {
+        setCartItems([]);
+        sessionStorage.removeItem("cartItems");
+    }, []);
+
     useEffect(() => {
         sessionStorage.setItem("cartItems", JSON.stringify(cartItems));
     }, [cartItems]);
@@ -266,6 +303,7 @@ export const AppProvider = ({ children }) => {
                 addToCart,
                 removeFromCart,
                 updateCartItemQuantity,
+                clearCart,
                 loading,
                 refreshAuth: handleRefreshToken,
             }}
